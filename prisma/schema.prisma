@@ -1,0 +1,203 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication and user data
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  password     String
+  name         String?
+  role         UserRoles     @default(User)
+  itineraries  Itinerary[]
+  bookings     Booking[]
+  reservations Reservation[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+// Pre-defined trip templates (equivalent to TravelPackage)
+model Trip {
+  id             String            @id @default(uuid())
+  name           String            @unique
+  description    String
+  price          Int
+  duration       String
+  tags           String[]
+  season         String
+  imageUrl       String?
+  imagePublicId  String?           // Add the ? to make it optional
+  availabilities TripAvailability?
+  bookings       Booking[]
+  reservations   Reservation[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+// Availability information for trips
+model TripAvailability {
+  id             String   @id @default(uuid())
+  trip           Trip     @relation(fields: [tripId], references: [id])
+  tripId         String   @unique
+  availableSeats Int      @default(0)
+  status         String
+  updatedAt      DateTime @updatedAt
+}
+
+// Custom itineraries created by users
+model Itinerary {
+  id         String    @id @default(uuid())
+  name       String
+  user       User      @relation(fields: [userId], references: [id])
+  userId     String
+  days       Json
+  link       String
+  totalPrice Int?
+  bookings   Booking[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+// Individual days within a custom itinerary
+
+// Available destinations
+model Destination {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  price       Int
+  description String?
+  imageUrl    String?
+  weatherData Weather?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Available hotels
+model Hotel {
+  id            String   @id @default(uuid())
+  name          String
+  price         Int
+  destinationId String? // Optional: hotel can be linked to a destination
+  stars         Int? // 3, 4, or 5 stars
+  description   String?
+  activities   String[] 
+  imageUrl      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Weather information for destinations
+model Weather {
+  id            String      @id @default(uuid())
+  destination   Destination @relation(fields: [destinationId], references: [id])
+  destinationId String      @unique
+  temperature   Int
+  condition     String
+  humidity      String
+  updatedAt     DateTime    @updatedAt
+}
+
+// Actual bookings made by users
+model Booking {
+  id            String     @id @default(uuid())
+  user          User       @relation(fields: [userId], references: [id])
+  userId        String
+  trip          Trip?      @relation(fields: [tripId], references: [id])
+  tripId        String?
+  itinerary     Itinerary? @relation(fields: [itineraryId], references: [id])
+  itineraryId   String?
+  startDate     DateTime
+  endDate       DateTime
+  participants  Int        @default(1)
+  totalPrice    Int
+  status        String     @default("pending") // pending, confirmed, cancelled, completed
+  paymentStatus String     @default("unpaid") // unpaid, paid
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+// Legacy Reservation model (can be used alongside Booking)
+model Reservation {
+  id              String   @id @default(uuid())
+  full_name       String
+  email           String
+  number_of_people Int
+  status          ReservationStatus @default(PENDING)
+  user            User?    @relation(fields: [userId], references: [id])
+  userId          String?
+  trip            Trip     @relation(fields: [tripId], references: [id])
+  tripId          String
+  promoCode       PromoCode? @relation(fields: [promoCodeId], references: [id])
+  promoCodeId     String?
+  imageUrl        String?  // Add this for storing the image URL
+  imagePublicId   String?  // Add this for Cloudinary image management
+  payment         Payment?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Payment {
+  id                    String        @id @default(uuid())
+  amount                Decimal       @db.Decimal(10, 2)
+  payment_method        String // e.g., "Guiddini"
+  status                PaymentStatus @default(PENDING)
+  transaction_reference String?
+  paid_at               DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  // Relation
+  reservationId String      @unique
+  reservation   Reservation @relation(fields: [reservationId], references: [id])
+}
+
+model PromoCode {
+  id                  String   @id @default(uuid())
+  code                String   @unique
+  discount_percentage Decimal  @db.Decimal(5, 2)
+  valid_until         DateTime
+  usage_limit         Int
+  times_used          Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  reservations Reservation[]
+}
+
+// Support messages from users
+model SupportMessage {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  subject   String
+  message   String
+  status    String   @default("new") // new, in-progress, resolved
+  createdAt DateTime @default(now())
+}
+
+enum UserRoles {
+  User
+  Vendeur
+  Admin
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}

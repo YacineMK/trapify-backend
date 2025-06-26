@@ -1,15 +1,36 @@
-import { CreateUserDto } from "@application/dto/create-user.dto";
-import { User } from "@domain/entities/User";
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { UserDto } from "@application/dto/user.dto";
 import { UserRepository } from "@infrastructure/repository/user.repository";
+import { User } from "@prisma/client";
+import { CreateUserDto } from "@application/dto/user.dto";
 
+@Injectable()
 export class UserService {
     constructor(
         private readonly userRepository: UserRepository
     ) {}
-    async createUser(createUserDto: CreateUserDto): Promise<User> {
-        return await this.userRepository.excuteCreate(createUserDto);
+    
+    async createUser(userDto: CreateUserDto): Promise<User> {
+        return await this.userRepository.excuteCreate(userDto);
     }
-    async findUser() {
+    
+    async findUser(): Promise<User[]> {
         return await this.userRepository.excuteFind();
+    }
+    
+    async findOneUser(id: string): Promise<User> {
+        const user = await this.userRepository.excuteFindOne(id);
+        if (!user) {
+            throw new NotFoundException(`User with ID ${id} not found`);
+        }
+        return user;
+    }
+    
+    async deleteUser(id: string): Promise<User> {
+        const userExists = await this.userRepository.excuteFindOne(id);
+        if (!userExists) {
+            throw new NotFoundException(`User with ID ${id} not found`);
+        }
+        return await this.userRepository.excuteDelete(id);
     }
 }

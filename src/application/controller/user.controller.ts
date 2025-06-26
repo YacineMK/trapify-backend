@@ -1,4 +1,4 @@
-import { CreateUserDto } from "@application/dto/create-user.dto";
+import { CreateUserDto } from "@application/dto/user.dto";
 import { LoggingInterceptor } from "@application/interceptors/logging.interceptor";
 import { ApiResponse, ResponseHandler } from "@application/interfaces/response";
 import { Context, LoggerService } from "@domain/services/logger.service";
