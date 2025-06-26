@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { TripRepository } from "@infrastructure/repository/TripRepository";
 import { Trip } from "@prisma/client";
 import { CloudinaryService } from "@infrastructure/cloudinary/cloudinary.service";
-import { CreateTripDto } from "@application/dto/trip.dto";
+import { CreateTripDto, UpdateTripDto } from "@application/dto/trip.dto";
 
 @Injectable()
 export class TripService {
@@ -11,7 +11,7 @@ export class TripService {
         private readonly cloudinaryService: CloudinaryService
     ) {}
     
-    async createTrip(tripData: CreateTripDto): Promise<Trip> {
+    async createTrip(tripData: CreateTripDto, userId: string, isAdmin: boolean): Promise<Trip> {
         // Parse price from string to number if needed
         if (typeof tripData.price === 'string') {
             tripData.price = parseInt(tripData.price, 10);
@@ -35,10 +35,17 @@ export class TripService {
             }
         }
         
-        return await this.tripRepository.excuteCreate(tripData);
+        // Add creator information
+        const tripWithCreator = {
+            ...tripData,
+            creatorId: userId,
+            isAgencyTrip: isAdmin
+        };
+        
+        return await this.tripRepository.excuteCreate(tripWithCreator);
     }
     
-    async createTripWithImage(tripData: CreateTripDto, file?: Express.Multer.File): Promise<Trip> {
+    async createTripWithImage(tripData: CreateTripDto, userId: string, isAdmin: boolean, file?: Express.Multer.File): Promise<Trip> {
         // Parse price from string to number if needed
         if (typeof tripData.price === 'string') {
             tripData.price = parseInt(tripData.price, 10);
@@ -62,8 +69,29 @@ export class TripService {
             }
         }
         
+        // Ensure itinaries is a valid JSON object
+        if (!tripData.itinaries) {
+            tripData.itinaries = { default: "Default itinerary" };
+        }
+        
+        // Handle case where itinaries might be a string
+        if (typeof tripData.itinaries === 'string') {
+            try {
+                tripData.itinaries = JSON.parse(tripData.itinaries as string);
+            } catch (e) {
+                tripData.itinaries = { default: "Default itinerary" };
+            }
+        }
+        
+        // Add creator information
+        const tripWithCreator = {
+            ...tripData,
+            creatorId: userId,
+            isAgencyTrip: isAdmin
+        };
+        
         // First create the trip
-        const trip = await this.tripRepository.excuteCreate(tripData);
+        const trip = await this.tripRepository.excuteCreate(tripWithCreator);
         
         // If there's an image file, upload it and update the trip
         if (file) {
@@ -123,5 +151,50 @@ export class TripService {
         }
         
         return await this.tripRepository.excuteDelete(id);
+    }
+    
+    async updateTrip(id: string, tripData: UpdateTripDto, userId: string, isAdmin: boolean): Promise<Trip> {
+        // First check if trip exists
+        const trip = await this.findOneTrip(id);
+        
+        // Check if user is the creator or an admin
+        if (trip.creatorId !== userId && !isAdmin) {
+            throw new ForbiddenException('You do not have permission to update this trip');
+        }
+        
+        // Process price if provided
+        if (tripData.price !== undefined && typeof tripData.price === 'string') {
+            tripData.price = parseInt(tripData.price, 10);
+        }
+        
+        // Process tags if provided
+        if (tripData.tags) {
+            if (typeof tripData.tags === 'string') {
+                try {
+                    const tagsStr = tripData.tags as string;
+                    if (tagsStr.startsWith('[') && tagsStr.endsWith(']')) {
+                        tripData.tags = JSON.parse(tagsStr);
+                    } else {
+                        tripData.tags = tagsStr.split(',').map(tag => tag.trim());
+                    }
+                } catch (error) {
+                    tripData.tags = [tripData.tags as unknown as string];
+                }
+            }
+        }
+        
+        // Process itinaries if provided
+        if (tripData.itinaries) {
+            if (typeof tripData.itinaries === 'string') {
+                try {
+                    tripData.itinaries = JSON.parse(tripData.itinaries as string);
+                } catch (e) {
+                    tripData.itinaries = { default: "Default itinerary" };
+                }
+            }
+        }
+        
+        // Update the trip
+        return this.tripRepository.excuteUpdate(id, tripData);
     }
 }

@@ -33,4 +33,18 @@ export class UserService {
         }
         return await this.userRepository.excuteDelete(id);
     }
+
+    /**
+     * Find all users in the system
+     * Admin-only functionality
+     */
+    async findAllUsers(): Promise<Partial<User>[]> {
+        const users = await this.userRepository.findAll();
+        
+        // Remove sensitive information like passwords
+        return users.map(user => {
+            const { password, ...userWithoutPassword } = user;
+            return userWithoutPassword;
+        });
+    }
 }

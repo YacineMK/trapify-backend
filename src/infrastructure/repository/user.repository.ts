@@ -59,4 +59,11 @@ export class UserRepository {
             where: { id },
         });
     }
+
+    /**
+     * Find all users
+     */
+    async findAll(): Promise<User[]> {
+        return this.prisma.user.findMany();
+    }
 }

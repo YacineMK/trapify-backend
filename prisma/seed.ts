@@ -27,6 +27,9 @@ async function main() {
       name: 'Admin User',
       password: hashedPassword,
       role: UserRoles.Admin,
+      itineraries: {
+        create: [],
+      },
     },
   });
 
