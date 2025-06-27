@@ -15,7 +15,7 @@ model User {
   role         UserRoles     @default(User)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
-
+  credit       Float         @default(0)
   itineraries  Json
   reservations Reservation[]
   createdTrips  Trip[]        @relation("CreatedTrips")
