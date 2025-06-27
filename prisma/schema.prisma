@@ -15,10 +15,9 @@ model User {
   role         UserRoles     @default(User)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
-
   itineraries  Json
   reservations Reservation[]
-  createdTrips  Trip[]        @relation("CreatedTrips")
+  createdTrips Trip[]        @relation("CreatedTrips")
 }
 
 model Trip {
@@ -29,18 +28,17 @@ model Trip {
   duration       String
   tags           String[]
   season         String
-  itinaries      Json              // Required field for itineraries data
   imageUrl       String?
   imagePublicId  String?
-  createdBy      User              @relation(fields: [creatorId], references: [id], name: "CreatedTrips")
-  creatorId      String
-  isAgencyTrip   Boolean           @default(false)
-  availabilities TripAvailability?
-  reservations   Reservation[]
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
-
-  shareableLink  String?           // Add this field
+  creatorId      String
+  isAgencyTrip   Boolean           @default(false)
+  itinaries      Json
+  shareableLink  String?
+  reservations   Reservation[]
+  createdBy      User              @relation("CreatedTrips", fields: [creatorId], references: [id])
+  availabilities TripAvailability?
 }
 
 model TripAvailability {
@@ -141,7 +139,6 @@ model SupportMessage {
   status    String   @default("new")
   createdAt DateTime @default(now())
 }
-
 
 enum UserRoles {
   User

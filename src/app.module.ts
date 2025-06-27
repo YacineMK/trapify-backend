@@ -32,6 +32,7 @@ import { DestinationRepository } from '@infrastructure/repository/destination.re
 import { ResponseHandler } from '@application/interfaces/response';
 import { AuthGuard } from '@application/guards/auth.guard';
 import { RoleGuard } from '@application/guards/role.guard';
+import { PaymentController } from '@application/controller/payment.controller';
 
 @Module({
   imports: [
@@ -45,7 +46,8 @@ import { RoleGuard } from '@application/guards/role.guard';
     ReservationController,
     AuthController,
     HotelController,
-    DestinationController
+    DestinationController,
+    PaymentController
   ],
   providers: [
     UserService,
