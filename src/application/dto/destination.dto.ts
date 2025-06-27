@@ -38,3 +38,30 @@ export class UpdateDestinationDto {
   @IsString()
   imageUrl?: string;
 }
+
+export class DestinationDto {
+  @IsUUID()
+  id: string;
+
+  @IsString()
+  name: string;
+
+  @IsNumber()
+  @Min(0)
+  price: number;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  imagePublicId?: string;
+
+  // Add any other fields that exist in your Destination model
+  // such as createdAt, updatedAt, weatherData, etc.
+}

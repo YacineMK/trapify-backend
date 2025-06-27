@@ -37,6 +37,7 @@ model Trip {
   isAgencyTrip   Boolean           @default(false)
   itinaries      Json
   shareableLink  String?
+  status         TripStatus        @default(PENDING)
   reservations   Reservation[]
   createdBy      User              @relation("CreatedTrips", fields: [creatorId], references: [id])
   availabilities TripAvailability?
@@ -157,4 +158,10 @@ enum PaymentStatus {
   PENDING
   PAID
   FAILED
+}
+
+enum TripStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

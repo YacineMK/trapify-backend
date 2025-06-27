@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { TripRepository } from "@infrastructure/repository/TripRepository";
-import { Trip } from "@prisma/client";
+import { Trip } from "@prisma/client"; // Remove TripStatus from here
 import { CloudinaryService } from "@infrastructure/cloudinary/cloudinary.service";
-import { CreateTripDto, UpdateTripDto } from "@application/dto/trip.dto";
+import { CreateTripDto, UpdateTripDto, TripStatus } from "@application/dto/trip.dto"; // Import TripStatus from dto
+import { UserRoles } from "@prisma/client";
 
 @Injectable()
 export class TripService {
@@ -11,6 +12,7 @@ export class TripService {
         private readonly cloudinaryService: CloudinaryService
     ) {}
     
+    // Update the createTrip method
     async createTrip(tripData: CreateTripDto, userId: string, isAdmin: boolean): Promise<Trip> {
         // Parse price from string to number if needed
         if (typeof tripData.price === 'string') {
@@ -31,20 +33,22 @@ export class TripService {
                 }
             } catch (error) {
                 // If parsing fails, convert to array with single item
-                tripData.tags = [tripData.tags as unknown  as  string];
+                tripData.tags = [tripData.tags as unknown as string];
             }
         }
         
-        // Add creator information
+        // Add creator information and status based on role
         const tripWithCreator = {
             ...tripData,
             creatorId: userId,
-            isAgencyTrip: isAdmin
+            isAgencyTrip: isAdmin,
+            status: isAdmin ? TripStatus.APPROVED : TripStatus.PENDING
         };
         
         return await this.tripRepository.excuteCreate(tripWithCreator);
     }
     
+    // Also update the createTripWithImage method
     async createTripWithImage(tripData: CreateTripDto, userId: string, isAdmin: boolean, file?: Express.Multer.File): Promise<Trip> {
         // Parse price from string to number if needed
         if (typeof tripData.price === 'string') {
@@ -69,25 +73,26 @@ export class TripService {
             }
         }
         
-        // Ensure itinaries is a valid JSON object
-        if (!tripData.itinaries) {
-            tripData.itinaries = { default: "Default itinerary" };
+        // Ensure itineraryJson is a valid JSON object
+        if (!tripData.itineraryJson) {
+            tripData.itineraryJson = { nodes: [], edges: [] };
         }
         
-        // Handle case where itinaries might be a string
-        if (typeof tripData.itinaries === 'string') {
+        // Handle case where itineraryJson might be a string
+        if (typeof tripData.itineraryJson === 'string') {
             try {
-                tripData.itinaries = JSON.parse(tripData.itinaries as string);
+                tripData.itineraryJson = JSON.parse(tripData.itineraryJson as string);
             } catch (e) {
-                tripData.itinaries = { default: "Default itinerary" };
+                tripData.itineraryJson = { nodes: [], edges: [] };
             }
         }
         
-        // Add creator information
+        // Add creator information and status based on role
         const tripWithCreator = {
             ...tripData,
             creatorId: userId,
-            isAgencyTrip: isAdmin
+            isAgencyTrip: isAdmin,
+            status: isAdmin ? TripStatus.APPROVED : TripStatus.PENDING
         };
         
         // First create the trip
@@ -127,8 +132,14 @@ export class TripService {
         });
     }
     
-    async findAllTrips(): Promise<Trip[]> {
-        return await this.tripRepository.excuteFind();
+    async findAllTrips(userRole?: UserRoles): Promise<Trip[]> {
+        // If admin, show all trips
+        if (userRole === UserRoles.Admin) {
+            return await this.tripRepository.excuteFind();
+        }
+        
+        // For regular users, only show approved trips
+        return await this.tripRepository.findApprovedTrips();
     }
     
     async findOneTrip(id: string): Promise<Trip> {
@@ -184,17 +195,39 @@ export class TripService {
         }
         
         // Process itinaries if provided
-        if (tripData.itinaries) {
-            if (typeof tripData.itinaries === 'string') {
+        if (tripData.itineraryJson) {
+            if (typeof tripData.itineraryJson === 'string') {
                 try {
-                    tripData.itinaries = JSON.parse(tripData.itinaries as string);
+                    tripData.itineraryJson = JSON.parse(tripData.itineraryJson as string);
                 } catch (e) {
-                    tripData.itinaries = { default: "Default itinerary" };
+                    tripData.itineraryJson = { nodes: [], edges: [] };
                 }
             }
         }
         
         // Update the trip
         return this.tripRepository.excuteUpdate(id, tripData);
+    }
+
+    // Add this method to TripService
+    async findTripsByStatus(status: TripStatus): Promise<Trip[]> {
+        return this.tripRepository.findByStatus(status);
+    }
+
+    // Add this method to your TripService class
+
+    async updateTripStatus(id: string, status: TripStatus, userId: string): Promise<Trip> {
+        // First check if trip exists
+        const trip = await this.findOneTrip(id);
+        
+        // Check if user is an admin
+        if (userId) {
+            // You might want to add user verification here
+            // This could involve a user repository lookup to confirm admin status
+            // For now, we'll assume the @Roles decorator handles this at controller level
+        }
+        
+        // Update the trip status
+        return this.tripRepository.excuteUpdate(id, { status });
     }
 }

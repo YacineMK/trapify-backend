@@ -4,8 +4,9 @@ import { ResponseHandler } from "@application/interfaces/response";
 import { Context, LoggerService } from "@domain/services/logger.service";
 import { TripService } from "@domain/services/Trip.service";
 import { FileInterceptor } from '@nestjs/platform-express';
-import { CreateTripDto, UpdateTripDto } from "@application/dto/trip.dto";
+import { CreateTripDto, UpdateTripDto, TripStatus } from "@application/dto/trip.dto";
 import { UserRoles } from '@prisma/client';
+import { Roles } from "@application/decorators/role.decorator";
 
 @Controller('trips')
 @UseInterceptors(LoggingInterceptor)
@@ -183,6 +184,53 @@ export class TripController {
     return ResponseHandler.success(
       updatedTrip, 
       'Trip updated successfully', 
+      'success', 
+      HttpStatus.OK
+    );
+  }
+  
+  @Patch(':id/status')
+  @Roles(UserRoles.Admin) // Only admins can use this endpoint
+  async updateTripStatus(
+    @Param('id') id: string,
+    @Body('status') status: TripStatus,
+    @Request() req: any
+  ) {
+    const context: Context = {
+      module: 'TripController',
+      method: 'updateTripStatus'
+    };
+    
+    this.Log.logger(`Updating status for trip ID: ${id} to ${status}`, context);
+    
+    const userId = req.user.sub;
+    const updatedTrip = await this.tripService.updateTripStatus(id, status, userId);
+    
+    this.Log.logger(`Trip status updated successfully to ${status}`, context);
+    return ResponseHandler.success(
+      updatedTrip, 
+      `Trip ${status.toLowerCase()} successfully`, 
+      'success', 
+      HttpStatus.OK
+    );
+  }
+  
+  // You may also want to add an endpoint to get all pending trips for admin review
+  @Get('pending')
+  @Roles(UserRoles.Admin)
+  async getPendingTrips() {
+    const context: Context = {
+      module: 'TripController',
+      method: 'getPendingTrips'
+    };
+    
+    this.Log.logger('Retrieving all pending trips', context);
+    const pendingTrips = await this.tripService.findTripsByStatus(TripStatus.PENDING);
+    
+    this.Log.logger('Pending trips retrieved successfully', context);
+    return ResponseHandler.success(
+      pendingTrips, 
+      'Pending trips retrieved successfully', 
       'success', 
       HttpStatus.OK
     );

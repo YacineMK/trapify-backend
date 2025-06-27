@@ -1,4 +1,6 @@
 import 'module-alias/register';
+import * as dotenv from 'dotenv';
+dotenv.config();
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
@@ -22,8 +24,8 @@ async function bootstrap() {
   
   // CORS configuration allowing any origin
   app.enableCors({
-    // Allow any origin
-    origin: '*',
+    // Allow any origin by reflecting the request origin
+    origin: true, // This dynamically reflects the request origin instead of '*'
     
     // Enable credentials (cookies, authorization headers)
     credentials: true,

@@ -1,7 +1,7 @@
-import { LoggerService } from "@domain/services/logger.service";
+import { Context, LoggerService } from "@domain/services/logger.service";
 import { GuidiniApi } from "@infrastructure/guidini";
 import { ResponseHandler } from '@application/interfaces/response';
-import { Body, Controller, Get, Post } from "@nestjs/common";
+import { Body, Controller, Get, Post, Query } from "@nestjs/common";
 import { HttpStatus } from "@nestjs/common";
 import { Public } from "@application/decorators/isPublic.decorator";
 
@@ -21,16 +21,37 @@ export class PaymentController {
             return ResponseHandler.error('Error creating payment', error.message || 'Unknown error', 'error', HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-    @Post('verify')
-    async verifyPayment() {
-        this.Log.logger('Verifying payment', { module: 'PaymentController', method: 'verifyPayment' });
+    @Public()
+    @Get('verify')
+    async verifyPayment(@Query('order_number') orderNumber: string) {
+        const context: Context = {
+            module: 'PaymentController',
+            method: 'verifyPayment'
+        };
+        
+        this.Log.logger('Verifying payment', context);
+        
         try {
-            const payment = await GuidiniApi.verifyPayment();
-            return ResponseHandler.success(payment, 'Payment verified successfully', 'success', HttpStatus.OK);
+            // Pass the order number to the API
+            const paymentData = await GuidiniApi.verifyPayment(orderNumber);
+            
+            // Process the payment verification result
+            // ...
+            
+            return ResponseHandler.success(
+                paymentData,
+                'Payment verified successfully',
+                'success',
+                HttpStatus.OK
+            );
         } catch (error) {
-            this.Log.error('Error verifying payment', error, { module: 'PaymentController', method: 'verifyPayment' });
-            return ResponseHandler.error('Error verifying payment', error.message || 'Unknown error', 'error', HttpStatus.INTERNAL_SERVER_ERROR);
+            this.Log.error('Error verifying payment', error, context);
+            return ResponseHandler.error(
+                'Error verifying payment',
+                error.message || 'Unknown error',
+                'error',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
     @Get('wallet')

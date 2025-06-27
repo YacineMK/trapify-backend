@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "@infrastructure/prisma/prisma.service";
 import { Trip } from "@prisma/client";
-import { TripDto } from '@application/dto/trip.dto';
+import { TripDto, TripStatus } from '@application/dto/trip.dto';
 
 @Injectable()
 export class TripRepository {
@@ -81,6 +81,44 @@ export class TripRepository {
         return this.prisma.trip.update({
             where: { id },
             data: tripData,
+            include: {
+                createdBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        role: true
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Finds trips by their status
+     */
+    async findByStatus(status: TripStatus): Promise<Trip[]> {
+        return this.prisma.trip.findMany({
+            where: { status },
+            include: {
+                createdBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        role: true
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Finds all approved trips
+     */
+    async findApprovedTrips(): Promise<Trip[]> {
+        return this.prisma.trip.findMany({
+            where: { status: 'APPROVED' },
             include: {
                 createdBy: {
                     select: {

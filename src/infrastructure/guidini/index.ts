@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from "axios";
-import { guidiniApiKey, guidiniApiSecret, guidiniApiUrl } from "@constants";
+import { guidiniApiUrl, guidiniApiKey, guidiniApiSecret } from "@constants";
 
 export class GuidiniApi {
   private static api: AxiosInstance = axios.create({
@@ -23,10 +23,13 @@ export class GuidiniApi {
     }
   }
 
-  static async verifyPayment(paymentId?: string): Promise<any> {
+  static async verifyPayment(orderNumber: string): Promise<any> {
     try {
-      const endpoint = paymentId ? `/payment/show/${paymentId}` : "/payment/show";
-      const response = await this.api.get(endpoint);
+      // CORRECT: Use params for GET requests, not data
+      const response = await this.api.get("/payment/show", {
+        params: { order_number: orderNumber }  // Changed from data to params
+      });
+      
       return response.data;
     } catch (error: any) {
       console.error("Error verifying payment:", error.response?.data || error.message);
