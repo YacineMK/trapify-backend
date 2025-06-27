@@ -1,7 +1,7 @@
 import { LoggerService } from "@domain/services/logger.service";
 import { GuidiniApi } from "@infrastructure/guidini";
 import { ResponseHandler } from '@application/interfaces/response';
-import { Body, Controller, Post } from "@nestjs/common";
+import { Body, Controller, Get, Post } from "@nestjs/common";
 import { HttpStatus } from "@nestjs/common";
 import { Public } from "@application/decorators/isPublic.decorator";
 
@@ -32,5 +32,11 @@ export class PaymentController {
             this.Log.error('Error verifying payment', error, { module: 'PaymentController', method: 'verifyPayment' });
             return ResponseHandler.error('Error verifying payment', error.message || 'Unknown error', 'error', HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+    @Get('wallet')
+    async getCurrentWallet() {
+        this.Log.logger('Fetching current wallet', { module: 'PaymentController', method: 'getCurrentWallet' });
+        try{}catch{}
+
     }
 }

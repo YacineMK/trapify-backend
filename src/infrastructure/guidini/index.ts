@@ -15,6 +15,7 @@ export class GuidiniApi {
   static async createPayment(amount: number): Promise<any> {
     try {
       const response = await this.api.post("/payment/initiate", { amount });
+      
       return response.data;
     } catch (error: any) {
       console.error("Error creating payment:", error.response?.data || error.message);
